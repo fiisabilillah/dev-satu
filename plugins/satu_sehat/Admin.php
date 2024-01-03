@@ -790,8 +790,8 @@ class Admin extends AdminModule
       "status": "arrived",
       "class": {
           "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
-          "code": "'.$code.'",
-          "display": "'.$display.'"
+          "code": "' . $code . '",
+          "display": "' . $display . '"
       },
       "subject": {
           "reference": "Patient/' . json_decode($this->getPatient($no_ktp_pasien))->entry[0]->resource->id . '",
@@ -894,20 +894,27 @@ class Admin extends AdminModule
     $status_lanjut = $this->core->getRegPeriksaInfo('status_lanjut', $no_rawat);
     $tgl_registrasi = $this->core->getRegPeriksaInfo('tgl_registrasi', $no_rawat);
     $jam_reg = $this->core->getRegPeriksaInfo('jam_reg', $no_rawat);
-    $inProg = $this->db('pemeriksaan_ralan')->select(['tgl' => 'tgl_perawatan', 'jam' => 'jam_rawat','respirasi' => 'respirasi','suhu' => 'suhu_tubuh','tensi'=> 'tensi','nadi' => 'nadi'])->where('no_rawat', $no_rawat)->oneArray();
+    $inProg = $this->db('pemeriksaan_ralan')->select(['tgl' => 'tgl_perawatan', 'jam' => 'jam_rawat', 'respirasi' => 'respirasi', 'suhu' => 'suhu_tubuh', 'tensi' => 'tensi', 'nadi' => 'nadi'])->where('no_rawat', $no_rawat)->oneArray();
     $diagnosa_pasien = $this->db('diagnosa_pasien')
       ->join('penyakit', 'penyakit.kd_penyakit=diagnosa_pasien.kd_penyakit')
       ->where('no_rawat', $no_rawat)
       ->where('diagnosa_pasien.status', $status_lanjut)
       ->where('prioritas', '1')
       ->oneArray();
-    $_prosedure_pasien = $this->db('prosedur_pasien')->select(['deskripsi_pendek' => 'icd9.deskripsi_pendek','kode' => 'icd9.kode'])->join('icd9','icd9.kode = prosedur_pasien.kode')->where('prosedur_pasien.no_rawat',$no_rawat)->where('prosedur_pasien.status','Ralan')->where('prosedur_pasien.prioritas','1')->oneArray();
-    $prosedure_pasien = $_prosedure_pasien['deskripsi_pendek'];
-    $kode_prosedure_pasien = $_prosedure_pasien['kode'];
+    $_prosedure_pasien = $this->db('prosedur_pasien')->select(['deskripsi_pendek' => 'icd9.deskripsi_pendek', 'kode' => 'icd9.kode'])->join('icd9', 'icd9.kode = prosedur_pasien.kode')->where('prosedur_pasien.no_rawat', $no_rawat)->where('prosedur_pasien.status', 'Ralan')->where('prosedur_pasien.prioritas', '1')->oneArray();
+    // Pemeriksaan untuk 'deskripsi_pendek'
+    $prosedure_pasien = isset($_prosedure_pasien['deskripsi_pendek']) ? $_prosedure_pasien['deskripsi_pendek'] : null;
+
+    // Pemeriksaan untuk 'kode'
+    $kode_prosedure_pasien = isset($_prosedure_pasien['kode']) ? $_prosedure_pasien['kode'] : null;
+
     if (strpos($kode_prosedure_pasien, '.') !== false) {
       $kode_prosedure_pasien = $kode_prosedure_pasien;
     } else {
-      $kode_prosedure_pasien = substr_replace($kode_prosedure_pasien,'.',2,0);
+      // Lakukan pemeriksaan tambahan jika diperlukan
+      if ($kode_prosedure_pasien !== null && strpos($kode_prosedure_pasien, '.') === false) {
+        $kode_prosedure_pasien = substr_replace($kode_prosedure_pasien, '.', 2, 0);
+      }
     }
 
     $mlite_billing = $this->db('mlite_billing')->where('no_rawat', $no_rawat)->oneArray();
@@ -963,8 +970,8 @@ class Admin extends AdminModule
     // $cek_ihs = $this->core->getPasienInfo('nip',$no_rkm_medis);
     // $ihs_patient = $cek_ihs;
     // if ($ihs_patient == '' || $ihs_patient == '-') {
-      $ihs_patient = json_decode($this->getPatient($no_ktp_pasien))->entry[0]->resource->id;
-      // $this->db('pasien')->where('no_rkm_medis',$no_rkm_medis)->update('nip',$ihs_patient);
+    $ihs_patient = json_decode($this->getPatient($no_ktp_pasien))->entry[0]->resource->id;
+    // $this->db('pasien')->where('no_rkm_medis',$no_rkm_medis)->update('nip',$ihs_patient);
     // }
 
     $sistole = strtok($inProg['tensi'], '/');
@@ -1008,10 +1015,10 @@ class Admin extends AdminModule
                 "reference": "urn:uuid:' . $uuid_encounter . '",
                 "display": "Pemeriksaan Fisik Pernafasan ' . $nama_pasien . ' di ' . $tgl_registrasi . '"
             },
-            "effectiveDateTime": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '",
-            "issued": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '",
+            "effectiveDateTime": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '",
+            "issued": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '",
             "valueQuantity": {
-                "value": '.$inProg['respirasi'].',
+                "value": ' . $inProg['respirasi'] . ',
                 "unit": "breaths/minute",
                 "system": "http://unitsofmeasure.org",
                 "code": "/min"
@@ -1062,10 +1069,10 @@ class Admin extends AdminModule
                 "reference": "urn:uuid:' . $uuid_encounter . '",
                 "display": "Pemeriksaan Fisik Nadi ' . $nama_pasien . ' di ' . $tgl_registrasi . '"
             },
-            "effectiveDateTime": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '",
-            "issued": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '",
+            "effectiveDateTime": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '",
+            "issued": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '",
             "valueQuantity": {
-                "value": '.$inProg['nadi'].',
+                "value": ' . $inProg['nadi'] . ',
                 "unit": "beats/minute",
                 "system": "http://unitsofmeasure.org",
                 "code": "/min"
@@ -1077,7 +1084,7 @@ class Admin extends AdminModule
         }
       },';
     }
-    
+
     if ($inProg['tensi'] != '') {
       $diastole = '{
         "fullUrl": "urn:uuid:' . $uuid_diastolik . '",
@@ -1116,8 +1123,8 @@ class Admin extends AdminModule
                 "reference": "urn:uuid:' . $uuid_encounter . '",
                 "display": "Pemeriksaan Fisik Diastolik ' . $nama_pasien . ' di ' . $tgl_registrasi . '"
             },
-            "effectiveDateTime": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '",
-            "issued": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '",
+            "effectiveDateTime": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '",
+            "issued": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '",
             "bodySite": {
               "coding": [
                   {
@@ -1128,7 +1135,7 @@ class Admin extends AdminModule
               ]
             },
             "valueQuantity": {
-                "value": '.$diastole.',
+                "value": ' . $diastole . ',
                 "unit": "mm[Hg]",
                 "system": "http://unitsofmeasure.org",
                 "code": "mm[Hg]"
@@ -1188,10 +1195,10 @@ class Admin extends AdminModule
                 "reference": "urn:uuid:' . $uuid_encounter . '",
                 "display": "Pemeriksaan Fisik Sistole ' . $nama_pasien . ' di ' . $tgl_registrasi . '"
             },
-            "effectiveDateTime": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '",
-            "issued": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '",
+            "effectiveDateTime": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '",
+            "issued": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '",
             "valueQuantity": {
-                "value": '.$inProg['respirasi'].',
+                "value": ' . $inProg['respirasi'] . ',
                 "unit": "breaths/minute",
                 "system": "http://unitsofmeasure.org",
                 "code": "/min"
@@ -1255,10 +1262,10 @@ class Admin extends AdminModule
                 "reference": "urn:uuid:' . $uuid_encounter . '",
                 "display": "Pemeriksaan Fisik Suhu ' . $nama_pasien . ' di ' . $tgl_registrasi . '"
             },
-            "effectiveDateTime": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '",
-            "issued": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '",
+            "effectiveDateTime": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '",
+            "issued": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '",
             "valueQuantity": {
-                "value": '.str_replace(',','.',$inProg['suhu']).',
+                "value": ' . str_replace(',', '.', $inProg['suhu']) . ',
                 "unit": "C",
                 "system": "http://unitsofmeasure.org",
                 "code": "Cel"
@@ -1268,11 +1275,11 @@ class Admin extends AdminModule
                   "coding": [
                       {
                           "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
-                          "code": "'.$value_temp.'",
-                          "display": "'.$display_temp.'"
+                          "code": "' . $value_temp . '",
+                          "display": "' . $display_temp . '"
                       }
                   ],
-                  "text": "Di '.$text_temp.' nilai referensi"
+                  "text": "Di ' . $text_temp . ' nilai referensi"
               }
           ]
         },
@@ -1303,8 +1310,8 @@ class Admin extends AdminModule
                 "coding": [
                     {
                         "system": "http://hl7.org/fhir/sid/icd-9-cm",
-                        "code": "'.$kode_prosedure_pasien.'",
-                        "display": "'.$prosedure_pasien.'"
+                        "code": "' . $kode_prosedure_pasien . '",
+                        "display": "' . $prosedure_pasien . '"
                     }
                 ]
             },
@@ -1317,8 +1324,8 @@ class Admin extends AdminModule
                 "display": "Tindakan pada ' . $nama_pasien . ' di tanggal ' . $tgl_registrasi . '"
             },
             "performedPeriod": {
-                "start": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '",
-                "end": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '"
+                "start": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '",
+                "end": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '"
             },
             "performer": [
                 {
@@ -1384,7 +1391,7 @@ class Admin extends AdminModule
               "reference": "urn:uuid:' . $uuid_encounter . '",
               "display": "Kunjungan ' . $nama_pasien . ' di tanggal ' . $tgl_registrasi . '"
           },
-          "date": "' . $this->convertTimeSatset($mlite_billing['tgl_billing'].' '.$mlite_billing['jam_billing']) . '' . $zonawaktu . '",
+          "date": "' . $this->convertTimeSatset($mlite_billing['tgl_billing'] . ' ' . $mlite_billing['jam_billing']) . '' . $zonawaktu . '",
           "author": [
               {
                   "reference": "Practitioner/' . $no_ktp_dokter['practitioner_id'] . '",
@@ -1414,8 +1421,8 @@ class Admin extends AdminModule
                 "status": "finished",
                 "class": {
                     "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
-                    "code": "'.$code.'",
-                    "display": "'.$display.'"
+                    "code": "' . $code . '",
+                    "display": "' . $display . '"
                 },
                 "subject": {
                     "reference": "Patient/' . $ihs_patient . '",
@@ -1441,8 +1448,8 @@ class Admin extends AdminModule
                     }
                 ],
                 "period": {
-                    "start": "' . $this->convertTimeSatset($tgl_registrasi.' '.$jam_reg) . '' . $zonawaktu . '",
-                    "end": "' . $this->convertTimeSatset($mlite_billing['tgl_billing'].' '.$mlite_billing['jam_billing']) . '' . $zonawaktu . '"
+                    "start": "' . $this->convertTimeSatset($tgl_registrasi . ' ' . $jam_reg) . '' . $zonawaktu . '",
+                    "end": "' . $this->convertTimeSatset($mlite_billing['tgl_billing'] . ' ' . $mlite_billing['jam_billing']) . '' . $zonawaktu . '"
                 },
                 "location": [
                     {
@@ -1474,22 +1481,22 @@ class Admin extends AdminModule
                     {
                         "status": "arrived",
                         "period": {
-                            "start": "' . $this->convertTimeSatset($tgl_registrasi.' '.$jam_reg) . '' . $zonawaktu . '",
-                            "end": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '"
+                            "start": "' . $this->convertTimeSatset($tgl_registrasi . ' ' . $jam_reg) . '' . $zonawaktu . '",
+                            "end": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '"
                         }
                     },
                     {
                         "status": "in-progress",
                         "period": {
-                            "start": "' . $this->convertTimeSatset($inProg['tgl'].' '.$inProg['jam']) . '' . $zonawaktu . '",
-                            "end": "' . $this->convertTimeSatset($mlite_billing['tgl_billing'].' '.$mlite_billing['jam_billing']) . '' . $zonawaktu . '"
+                            "start": "' . $this->convertTimeSatset($inProg['tgl'] . ' ' . $inProg['jam']) . '' . $zonawaktu . '",
+                            "end": "' . $this->convertTimeSatset($mlite_billing['tgl_billing'] . ' ' . $mlite_billing['jam_billing']) . '' . $zonawaktu . '"
                         }
                     },
                     {
                         "status": "finished",
                         "period": {
-                            "start": "' . $this->convertTimeSatset($mlite_billing['tgl_billing'].' '.$mlite_billing['jam_billing']) . '' . $zonawaktu . '",
-                            "end": "' . $this->convertTimeSatset($mlite_billing['tgl_billing'].' '.$mlite_billing['jam_billing']) . '' . $zonawaktu . '"
+                            "start": "' . $this->convertTimeSatset($mlite_billing['tgl_billing'] . ' ' . $mlite_billing['jam_billing']) . '' . $zonawaktu . '",
+                            "end": "' . $this->convertTimeSatset($mlite_billing['tgl_billing'] . ' ' . $mlite_billing['jam_billing']) . '' . $zonawaktu . '"
                         }
                     }
                 ],
@@ -1507,11 +1514,11 @@ class Admin extends AdminModule
                 "method": "POST",
                 "url": "Encounter"
             }
-        },'.
-        $respiratory.
-        $suhu.
-        $nadi
-        .'{
+        },' .
+      $respiratory .
+      $suhu .
+      $nadi
+      . '{
             "fullUrl": "urn:uuid:' . $uuid_condition . '",
             "resource": {
                 "resourceType": "Condition",
@@ -1558,8 +1565,8 @@ class Admin extends AdminModule
                 "url": "Condition"
             }
         },'
-        .$procedure
-        .$composition.
+      . $procedure
+      . $composition .
       ']
     }';
     $curl = curl_init();
@@ -1589,7 +1596,7 @@ class Admin extends AdminModule
     $index = '';
     foreach ($entry as $key => $value) {
       $resourceType = $value->response->resourceType;
-      $index = $index.' '.$key.'|'.$resourceType.' ';
+      $index = $index . ' ' . $key . '|' . $resourceType . ' ';
       if ($resourceType == 'Encounter') {
         $id_encounter = $value->response->resourceID;
       }
@@ -1647,7 +1654,6 @@ class Admin extends AdminModule
             $id_observation_nadi = $value->response->resourceID;
           }
         }
-
       }
       if ($resourceType == 'Procedure') {
         $id_procedure = $value->response->resourceID;
@@ -1669,7 +1675,7 @@ class Admin extends AdminModule
         'id_procedure' => $id_procedure,
         'id_composition' => $id_composition
       ]);
-      $pesan = 'Sukses mengirim '.$index.' platform Satu Sehat!! ';
+      $pesan = 'Sukses mengirim ' . $index . ' platform Satu Sehat!! ';
     }
 
     curl_close($curl);
@@ -2240,17 +2246,31 @@ class Admin extends AdminModule
     if (isset($_POST['simpan'])) {
       $kode_departemen = $_POST['dep_id'];
       $kode_organization = '';
+
       if ($_POST['poli'] != '') {
         $kode_departemen = $_POST['poli'];
         $kode_organization = $_POST['id_organisasi_sub'];
       }
+
       $send_json = $this->getOrganization($kode_departemen, $kode_organization);
-      $id_organisasi_satusehat = json_decode($send_json)->id;
-      $issues = json_decode($send_json)->issue;
-      foreach ($issues as $value) {
-        $code_response = $value->code;
-        $err_response = $value->details->text;
+      $response = json_decode($send_json);
+
+      $id_organisasi_satusehat = $response->id;
+      $issues = isset($response->issue) ? $response->issue : null;
+
+      $code_response = null;
+      $err_response = null;
+
+      if ($issues !== null) {
+        foreach ($issues as $value) {
+          $code_response = $value->code;
+          $err_response = $value->details->text;
+        }
+      } else {
+        // Handle jika $issues adalah null
+        $err_response = "No issues found.";
       }
+
 
       if ($id_organisasi_satusehat != '') {
         $query = $this->db('mlite_satu_sehat_departemen')->save(
@@ -2259,8 +2279,10 @@ class Admin extends AdminModule
             'id_organisasi_satusehat' => $id_organisasi_satusehat
           ]
         );
+
         if ($query) {
           $this->notify('success', 'Mapping departemen telah disimpan ');
+          redirect(url([ADMIN, 'satu_sehat', 'departemen']));
         } else {
           $this->notify('danger', 'Mapping departemen gagal disimpan');
         }
@@ -2268,6 +2290,7 @@ class Admin extends AdminModule
         echo "<script>alert('" . $err_response . "');document.location='" . url([ADMIN, 'satu_sehat', 'departemen']) . "'</script>";
       }
     }
+
     if (isset($_POST['update'])) {
       $query = $this->db('mlite_satu_sehat_departemen')
         ->where('id_organisasi_satusehat', $_POST['id_organisasi_satusehat'])
@@ -2277,9 +2300,11 @@ class Admin extends AdminModule
             'nama' => $_POST['nama']
           ]
         );
+
       if ($query) {
         $this->notify('success', 'Mapping departemen telah disimpan');
       }
+
       redirect(url([ADMIN, 'satu_sehat', 'departemen']));
     }
   }
@@ -2355,8 +2380,8 @@ class Admin extends AdminModule
   public function getMappingPraktisi()
   {
     $mapping_praktisi = $this->db('mlite_satu_sehat_mapping_praktisi')
-    ->join('dokter', 'dokter.kd_dokter=mlite_satu_sehat_mapping_praktisi.kd_dokter')
-    ->toArray();
+      ->join('dokter', 'dokter.kd_dokter=mlite_satu_sehat_mapping_praktisi.kd_dokter')
+      ->toArray();
     $dokter = $this->db('dokter')->where('status', '1')->toArray();
     return $this->draw('mapping.praktisi.html', ['mapping_praktisi' => $mapping_praktisi, 'dokter' => $dokter]);
   }
@@ -2409,21 +2434,21 @@ class Admin extends AdminModule
       $row['nm_poli'] = $this->core->getPoliklinikInfo('nm_poli', $row['kd_poli']);
 
       $mlite_billing = $this->db('mlite_billing')->where('no_rawat', $row['no_rawat'])->oneArray();
-      if($this->settings->get('satu_sehat.billing') == 'khanza') {
+      if ($this->settings->get('satu_sehat.billing') == 'khanza') {
         $mlite_billing = $this->db('nota_jalan')->select([
           'tgl_billing' => 'tanggal'
         ])
-        ->where('no_rawat', $row['no_rawat'])
-        ->oneArray();
-        if($status_lanjut == 'Ranap') {
+          ->where('no_rawat', $row['no_rawat'])
+          ->oneArray();
+        if ($status_lanjut == 'Ranap') {
           $mlite_billing = $this->db('nota_inap')->select([
             'tgl_billing' => 'tanggal'
           ])
-          ->where('no_rawat', $row['no_rawat'])
-          ->oneArray();
+            ->where('no_rawat', $row['no_rawat'])
+            ->oneArray();
         }
-      }      
-      $row['tgl_pulang'] = isset_or($mlite_billing['tgl_billing'], '');      
+      }
+      $row['tgl_pulang'] = isset_or($mlite_billing['tgl_billing'], '');
 
       if ($row['status_lanjut'] == 'Ranap') {
         $row['kd_kamar'] = $this->core->getKamarInapInfo('kd_kamar', $row['no_rawat']);
