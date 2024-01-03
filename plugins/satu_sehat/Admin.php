@@ -2241,7 +2241,7 @@ class Admin extends AdminModule
     return $this->draw('departemen.html', ['departemen' => $this->db('departemen')->toArray(), 'poli' => $poli, 'satu_sehat_departemen' => $satu_sehat]);
   }
 
-  public function postSaveDepartemen()
+   public function postSaveDepartemen()
   {
     if (isset($_POST['simpan'])) {
       $kode_departemen = $_POST['dep_id'];
@@ -2308,7 +2308,6 @@ class Admin extends AdminModule
       redirect(url([ADMIN, 'satu_sehat', 'departemen']));
     }
   }
-
   public function getLokasi()
   {
     $poliklinik = $this->db('poliklinik')->select([
